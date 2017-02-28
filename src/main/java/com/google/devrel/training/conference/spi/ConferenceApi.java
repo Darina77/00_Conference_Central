@@ -11,6 +11,8 @@ import com.google.devrel.training.conference.form.ProfileForm;
 import com.google.devrel.training.conference.form.ProfileForm.TeeShirtSize;
 import com.googlecode.objectify.Key;
 
+import static com.googlecode.objectify.ObjectifyService.ofy;
+
 
 /**
  * Defines conference APIs.
@@ -77,11 +79,14 @@ public class ConferenceApi {
         if (displayName == null) displayName = extractDefaultDisplayNameFromEmail(mainEmail);
         // Create a new Profile entity from the
         // userId, displayName, mainEmail and teeShirtSize
-        Profile profile = new Profile(userId, displayName, mainEmail, teeShirtSize);
 
+        Profile profile = getProfile(user);
         // TODO 3 (In Lesson 3)
         // Save the Profile entity in the datastore
-
+        if(profile == null)
+            profile = new Profile(userId, displayName, mainEmail, teeShirtSize);
+        else
+            profile.update(displayName, teeShirtSize);
         // Return the profile
         return profile;
     }
@@ -104,9 +109,9 @@ public class ConferenceApi {
 
         // TODO
         // load the Profile Entity
-        String userId = ""; // TODO
-        Key key = null; // TODO
-        Profile profile = null; // TODO load the Profile entity
+        String userId = user.getUserId(); // TODO
+        Key<Profile> key = Key.create(Profile.class, userId); // TODO
+        Profile profile = ofy().load().key(key).now(); // TODO load the Profile entity
         return profile;
     }
 }
