@@ -53,6 +53,6 @@ public class Profile {
 
 	public void update(String displayName, TeeShirtSize teeShirtSize) {
     	this.displayName = displayName;
-    	this.teeShirtSize = teeShirtSize;
+    	this.teeShirtSize = TeeShirtSize.M;
 	}
 }
