@@ -13,8 +13,7 @@ public class Profile {
 	TeeShirtSize teeShirtSize;
 
 	// TODO indicate that the userId is to be used in the Entity's key
-	@Id
-	String userId;
+	@Id String userId;
     
     /**
      * Public constructor for Profile.

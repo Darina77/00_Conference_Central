@@ -9,9 +9,8 @@ import com.google.devrel.training.conference.Constants;
 import com.google.devrel.training.conference.domain.Profile;
 import com.google.devrel.training.conference.form.ProfileForm;
 import com.google.devrel.training.conference.form.ProfileForm.TeeShirtSize;
+import com.google.devrel.training.conference.service.OfyService;
 import com.googlecode.objectify.Key;
-
-import static com.googlecode.objectify.ObjectifyService.ofy;
 
 
 /**
@@ -93,7 +92,7 @@ public class ConferenceApi {
                 profile.update(displayName, teeShirtSize);
         }
         // Return the profile
-        ofy().save().entity(profile).now();
+        OfyService.ofy().save().entity(profile).now();
         return profile;
     }
 
@@ -117,7 +116,7 @@ public class ConferenceApi {
         // load the Profile Entity
         String userId = user.getUserId(); // TODO
         Key key = Key.create(Profile.class, userId); // TODO
-        Profile profile = (Profile)ofy().load().key(key).now(); // TODO load the Profile entity
+        Profile profile = (Profile)OfyService.ofy().load().key(key).now(); // TODO load the Profile entity
         return profile;
     }
 }
