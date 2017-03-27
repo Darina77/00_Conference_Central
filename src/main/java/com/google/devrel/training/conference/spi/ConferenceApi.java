@@ -8,8 +8,14 @@ import com.google.api.server.spi.response.ConflictException;
 import com.google.api.server.spi.response.ForbiddenException;
 import com.google.api.server.spi.response.NotFoundException;
 import com.google.api.server.spi.response.UnauthorizedException;
+import com.google.appengine.api.memcache.MemcacheService;
+import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import com.google.appengine.api.taskqueue.Queue;
+import com.google.appengine.api.taskqueue.QueueFactory;
+import com.google.appengine.api.taskqueue.TaskOptions;
 import com.google.appengine.api.users.User;
 import com.google.devrel.training.conference.Constants;
+import com.google.devrel.training.conference.domain.Announcement;
 import com.google.devrel.training.conference.domain.Conference;
 import com.google.devrel.training.conference.domain.Profile;
 import com.google.devrel.training.conference.form.ConferenceForm;
@@ -35,6 +41,36 @@ import static com.google.devrel.training.conference.service.OfyService.ofy;
 @Api(name = "conference", version = "v1", scopes = { Constants.EMAIL_SCOPE }, clientIds = {
         Constants.WEB_CLIENT_ID, Constants.API_EXPLORER_CLIENT_ID }, description = "API for the Conference Central Backend application.")
 public class ConferenceApi {
+
+
+    @ApiMethod(
+            name = "queryConferences_nofilters",
+            path = "queryConferences_nofilters",
+            httpMethod = HttpMethod.POST
+    )
+    public List<Conference> queryConferences_nofilters() {
+        // Find all entities of type Conference
+        Query<Conference> query = ofy().load().type(Conference.class).order("name");
+
+        return query.list();
+    }
+
+
+
+    @ApiMethod(
+            name="getAnnouncement",
+            path = "announcement",
+            httpMethod = HttpMethod.GET
+    )
+    public Announcement getAnnouncement(){
+        //TODO GET announcement from memcache by key and if it exist return it
+        MemcacheService memcacheService = MemcacheServiceFactory.getMemcacheService();
+        Object message = memcacheService.get(Constants.MEMCACHE_ANNOUNCEMENTS_KEY);
+        if (message != null) {
+            return new Announcement(message.toString());
+        }
+        return null;
+    }
 
 
     /**
@@ -358,7 +394,7 @@ public Collection<Conference> getConferencesToAttend(final User user)
 
         // TODO (Lesson 4)
         // Get the userId of the logged in User
-        String userId = user.getUserId();
+        final String userId = user.getUserId();
 
         // TODO (Lesson 4)
         // Get the key for the User's Profile
@@ -375,20 +411,32 @@ public Collection<Conference> getConferencesToAttend(final User user)
         // Get the Conference Id from the Key
         final long conferenceId = conferenceKey.getId();
 
-        // TODO (Lesson 4)
-                // Get the existing Profile entity for the current user if there is one
-                // Otherwise create a new Profile entity with default values
-                Profile profile = getProfileFromUser(user);
-                if (profile == null) profile = saveProfile(user, new ProfileForm(null, ProfileForm.TeeShirtSize.NOT_SPECIFIED));
+        final Queue queue = QueueFactory.getDefaultQueue();
+        Conference conference = ofy().transact(new Work<Conference>() {
+            @Override
+            public Conference run() {
 
-                // TODO (Lesson 4)
-                // Create a new Conference Entity, specifying the user's Profile entity
-                // as the parent of the conference
-                Conference conference = new Conference(conferenceId, userId, conferenceForm);
 
-        // TODO (Lesson 4)
-        // Save Conference and Profile Entities
-        ofy().save().entities(profile, conference).now();
+            // TODO (Lesson 4)
+            // Get the existing Profile entity for the current user if there is one
+            // Otherwise create a new Profile entity with default values
+            Profile profile = getProfileFromUser(user);
+
+            // TODO (Lesson 4)
+            // Create a new Conference Entity, specifying the user's Profile entity
+            // as the parent of the conference
+            Conference conference = new Conference(conferenceId, userId, conferenceForm);
+
+            // TODO (Lesson 4)
+            // Save Conference and Profile Entities
+            ofy().save().entities(profile, conference).now();
+                queue.add(ofy().getTransaction(),
+                        TaskOptions.Builder.withUrl("/tasks/send_confirmation_email")
+                                .param("email", profile.getMainEmail())
+                                .param("conferenceInfo", conference.toString()));
+                return conference;
+        }
+    });
 
         return conference;
     }

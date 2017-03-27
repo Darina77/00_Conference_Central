@@ -1,27 +1,24 @@
 package com.google.devrel.training.conference.domain;
 
-import static com.google.devrel.training.conference.service.OfyService.ofy;
-import com.googlecode.objectify.condition.IfNotDefault;
-
 import com.google.api.server.spi.config.AnnotationBoolean;
 import com.google.api.server.spi.config.ApiResourceProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.devrel.training.conference.form.ConferenceForm;
 import com.googlecode.objectify.Key;
-import com.googlecode.objectify.annotation.Entity;
-import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.Index;
-import com.googlecode.objectify.annotation.Parent;
+import com.googlecode.objectify.annotation.*;
+import com.googlecode.objectify.condition.IfNotDefault;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import static com.google.devrel.training.conference.service.OfyService.ofy;
+
 /**
  * Conference class stores conference information.
  */
-@Entity
+@Entity @Cache
 public class Conference {
 
     private static final String DEFAULT_CITY = "Default City";
